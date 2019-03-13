@@ -63,7 +63,7 @@ func main() {
 	for i:=0; i<len(workerConf.NameOfWorkerQueue); i++ {
 		num := workerConf.NumberOfWorkerQueue[i]
 		for num > 0 {
-			<-time.After(100 * time.Millisecond)	// 减少并发，避免出错
+			time.Sleep(time.Duration(500)*time.Millisecond) // 不 sleep 進 ListenQueue
 			go ListenQueue(workerConf.NameOfWorkerQueue[i], num, chString)
 			num--
 		}
@@ -85,7 +85,9 @@ func ListenQueue(tag string, workerId int, ch chan<- string) {
 		fmt.Println("[ListenQueue]: QueueDeclare error:", errQueueDeclare)
 	}
 
-	fmt.Println("WorkerID: worker", strconv.Itoa(workerId))
+	fmt.Println("Tag:" + tag + ", WorkerID: " + tag + strconv.Itoa(workerId))
+
+	//ch <- "Tag:" + tag + ", WorkerID: " + tag + strconv.Itoa(workerId)
 	msg, err := rabbitChannel.Consume(queue.Name, "", false, false, false, false, nil)
 	if err != nil {
 		fmt.Println("[ListenQueue]: rabbitChannel.Consume error:", err)
@@ -96,9 +98,10 @@ func ListenQueue(tag string, workerId int, ch chan<- string) {
 	for d := range msg {
 		doNothing()
 		d.Ack(false)
+		return
 	}
 
-	ch <- "finish"
+	ch <- "Tag:" + tag + ", WorkerID: " + tag + strconv.Itoa(workerId) + "finished"
 }
 
 func doNothing() {}
